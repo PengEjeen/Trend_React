@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import UserDetail from './UserDetail';
+import NaverSearch from './NaverSearch';
+import './UserPage.css';
 
 const UserPage = () => {
   const [userData, setUserData] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
   const [keyword, setKeyword] = useState('');
-  const [showModal, setShowModal] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedComponent, setSelectedComponent] = useState('userDetail'); // 'userDetail' 또는 'naverSearch'
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -29,30 +33,6 @@ const UserPage = () => {
     return `http://localhost:8000/${link}`;
   };
 
-  const renderTestResults = (testResult) => {
-    return (
-      <div style={{ marginTop: '20px' }}>
-        <h4>Test Results:</h4>
-        <table style={{ borderCollapse: 'collapse', width: '100%', border: '1px solid #ddd' }}>
-          <thead style={{ backgroundColor: '#f2f2f2' }}>
-            <tr>
-              <th style={{ padding: '8px', border: '1px solid #ddd' }}>Measure</th>
-              <th style={{ padding: '8px', border: '1px solid #ddd' }}>Value</th>
-            </tr>
-          </thead>
-          <tbody>
-            {Object.entries(testResult).map(([measure, value]) => (
-              <tr key={measure} style={{ border: '1px solid #ddd' }}>
-                <td style={{ padding: '8px', border: '1px solid #ddd' }}>{measure}</td>
-                <td style={{ padding: '8px', border: '1px solid #ddd' }}>{value}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    );
-  };
-
   const handleCreate = async () => {
     try {
       const user = sessionStorage.getItem('user_id');
@@ -66,113 +46,71 @@ const UserPage = () => {
     }
   };
 
+  const openModal = () => {
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+  };
+
+  const handleComponentSelection = (component) => {
+    setSelectedComponent(component);
+  };
+
   return (
     <div>
       <div style={{ display: 'flex', gap: '20px' }}>
         <div style={{ flex: 1, background: '#f2f2f2', padding: '20px' }}>
-          <h3>Your List</h3>
-          <button onClick={() => setShowModal(true)} style={{ marginBottom: '10px' }}>Create New</button>
+          <h3>List</h3>
+          <button onClick={openModal} className="create-button">Create</button>
           <ul style={{ listStyleType: 'none', padding: 0 }}>
             {userData.map((data, index) => (
               <li key={index} style={{ marginBottom: '10px' }}>
-                <button onClick={() => handleUserClick(data)} style={{ width: '100%', padding: '10px' }}> 
-                    {data.keyword}
-                </button>{' '}
+                <button onClick={() => handleUserClick(data)} style={{ width: '100%', padding: '10px' }}>
+                  {data.keyword}
+                </button>
               </li>
             ))}
           </ul>
         </div>
         <div style={{ flex: 10 }}>
           <h3>User Details</h3>
-          {selectedUser && (
-            <div style={{ marginBottom: '20px' }}>
-              <h4 style={{ color: '#333', borderBottom: '1px solid #ddd', paddingBottom: '10px' }}>{selectedUser.keyword}</h4>
-              {selectedUser.df_plot && (
-                <div style={{ margin: '10px 0', lineHeight: '1.6' }}>
-                  <h4>DF Plot:</h4>
-                  <img src={addBaseUrl(selectedUser.df_plot)} alt="DF Plot" style={{ maxWidth: '100%' }} />
-                </div>
-              )}
-              {selectedUser.decompose_plot && (
-                <div style={{ margin: '10px 0', lineHeight: '1.6' }}>
-                  <h4>Decompose Plot:</h4>
-                  <img src={addBaseUrl(selectedUser.decompose_plot)} alt="Decompose Plot" style={{ maxWidth: '100%' }} />
-                </div>
-              )}
-              {selectedUser.predict_plot && (
-                <div style={{ margin: '10px 0', lineHeight: '1.6' }}>
-                  <h4>Predict Plot:</h4>
-                  <img src={addBaseUrl(selectedUser.predict_plot)} alt="Predict Plot" style={{ maxWidth: '100%' }} />
-                </div>
-              )}
-              {selectedUser.test_result && renderTestResults(selectedUser.test_result)}
-            </div>
+          <div>
+            <button onClick={() => handleComponentSelection('userDetail')} className="selection-button">
+              User Detail
+            </button>
+            <button onClick={() => handleComponentSelection('naverSearch')} className="selection-button">
+              Info
+            </button>
+          </div>
+          {selectedComponent === 'userDetail' && selectedUser && (
+            <UserDetail user={selectedUser} addBaseUrl={addBaseUrl} />
+          )}
+          {selectedComponent === 'naverSearch' && (
+            <NaverSearch keyword={selectedUser ? selectedUser.keyword : ''} />
           )}
         </div>
       </div>
 
-      {showModal && (
-        <div style={modalStyles.overlay}>
-          <div style={modalStyles.modal}>
-            <h3>Create New</h3>
+      {isModalOpen && (
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h2>Create Page</h2>
             <input
               type="text"
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
               placeholder="키워드 입력"
-              style={modalStyles.input}
+              className="modal-input"
             />
-            <div style={modalStyles.buttonContainer}>
-              <button onClick={handleCreate} style={modalStyles.button}>Create</button>
-              <button onClick={() => setShowModal(false)} style={modalStyles.button}>Cancel</button>
-            </div>
+            <button onClick={handleCreate} className="modal-button">Create</button>
+            <button onClick={closeModal} className="modal-button">Close</button>
           </div>
         </div>
       )}
     </div>
   );
-};
-
-const modalStyles = {
-  overlay: {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 1000,
-  },
-  modal: {
-    backgroundColor: '#fff',
-    padding: '20px',
-    borderRadius: '8px',
-    width: '300px',
-    textAlign: 'center',
-    boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
-  },
-  input: {
-    width: '90%',
-    padding: '10px',
-    marginBottom: '20px',
-    border: '1px solid #ccc',
-    borderRadius: '4px',
-  },
-  buttonContainer: {
-    display: 'flex',
-    justifyContent: 'space-between',
-  },
-  button: {
-    padding: '10px 20px',
-    border: 'none',
-    borderRadius: '4px',
-    backgroundColor: '#007bff',
-    color: '#fff',
-    cursor: 'pointer',
-  },
 };
 
 export default UserPage;
